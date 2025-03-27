@@ -43,6 +43,7 @@ int ebpf_whodata_queue_full_reported = 0;
 
 fim::BoundedQueue<std::unique_ptr<file_event>> kernelEventQueue;
 using whodata_deleter = std::function<void(whodata_evt*)>;
+whodata_deleter deleter;
 fim::BoundedQueue<std::unique_ptr<whodata_evt, whodata_deleter>> whodataEventQueue;
 
 static char* uint_to_str(unsigned int num) {
@@ -61,13 +62,37 @@ int handle_event(void* ctx, void* data, size_t data_sz) {
     (void)data_sz;
 
     file_event* e = static_cast<file_event*>(data);
-    auto new_event = std::make_unique<file_event>(*e);
+    auto event = std::make_unique<file_event>(*e);
     auto logFn = fimebpf::instance().m_loggingFunction;
 
-    if (!kernelEventQueue.push(std::move(new_event))) {
-        if (!ebpf_kernel_queue_full_reported) {
-            logFn(LOG_WARNING, FIM_FULL_EBPF_KERNEL_QUEUE);
-            ebpf_kernel_queue_full_reported = 1;
+    if (event) {
+        directory_t* config = fimebpf::instance().m_fim_configuration_directory(event->filename);
+        if (config && (config->options & WHODATA_ACTIVE)) {
+            whodata_evt* w_evt = (whodata_evt*)calloc(1, sizeof(whodata_evt));
+            if (!w_evt) {
+                return 0;
+            }
+            w_evt->path = strdup(event->filename);
+            w_evt->process_name = strdup(event->comm);
+            w_evt->user_id = uint_to_str(event->uid);
+            w_evt->user_name = fimebpf::instance().m_get_user(event->uid);
+            w_evt->group_id = uint_to_str(event->gid);
+            w_evt->group_name = fimebpf::instance().m_get_group(event->gid);
+            w_evt->inode = ulong_to_str(event->inode);
+            w_evt->dev = ulong_to_str(event->dev);
+            w_evt->process_id = event->pid;
+            w_evt->ppid = event->ppid;
+            w_evt->cwd = strdup(event->cwd);
+            w_evt->parent_cwd = strdup(event->parent_cwd);
+            w_evt->parent_name = strdup(event->parent_comm);
+
+            auto whodata_event = std::unique_ptr<whodata_evt, whodata_deleter>(w_evt, deleter);
+            if (!whodataEventQueue.push(std::move(whodata_event))) {
+                if (!ebpf_whodata_queue_full_reported) {
+                    logFn(LOG_WARNING, FIM_FULL_EBPF_WHODATA_QUEUE);
+                    ebpf_whodata_queue_full_reported = 1;
+                }
+            }
         }
     }
 
@@ -273,12 +298,6 @@ void ebpf_pop_events(fim::BoundedQueue<std::unique_ptr<file_event>>& local_kerne
         return;
     }
 
-    auto deleter = [](whodata_evt* evt) {
-        if (fimebpf::instance().m_free_whodata_event) {
-            fimebpf::instance().m_free_whodata_event(evt);
-        }
-    };
-
     while (!fimebpf::instance().m_fim_shutdown_process_on()) {
         std::unique_ptr<file_event> event;
 
@@ -292,6 +311,9 @@ void ebpf_pop_events(fim::BoundedQueue<std::unique_ptr<file_event>>& local_kerne
             directory_t* config = fimebpf::instance().m_fim_configuration_directory(event->filename);
             if (config && (config->options & WHODATA_ACTIVE)) {
                 whodata_evt* w_evt = (whodata_evt*)calloc(1, sizeof(whodata_evt));
+                if (!w_evt) {
+                    continue;
+                }
                 w_evt->path = strdup(event->filename);
                 w_evt->process_name = strdup(event->comm);
                 w_evt->user_id = uint_to_str(event->uid);
@@ -435,10 +457,17 @@ int ebpf_whodata() {
         return 1;
     }
 
+    deleter = [](whodata_evt* evt) {
+        if (fimebpf::instance().m_free_whodata_event) {
+            fimebpf::instance().m_free_whodata_event(evt);
+        }
+    };
+/*
     std::thread ebpf_pop_thread([&]() {
         bpf_helpers->ebpf_pop_events(kernelEventQueue, whodataEventQueue);
     });
     ebpf_pop_thread.detach();
+*/
 
     std::thread whodata_pop_thread([&]() {
 	    bpf_helpers->whodata_pop_events(whodataEventQueue);
