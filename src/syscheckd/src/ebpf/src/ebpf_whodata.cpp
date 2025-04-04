@@ -63,6 +63,8 @@ int handle_event(void* ctx, void* data, size_t data_sz) {
         return 0;
     }
 
+    logFn(LOG_WARNING, e->filename);
+
     directory_t* config = confFn(e->filename);
     if (config && (config->options & WHODATA_ACTIVE)) {
         auto event = std::make_unique<dynamic_file_event>(dynamic_file_event{

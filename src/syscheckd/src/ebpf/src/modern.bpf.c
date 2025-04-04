@@ -332,6 +332,7 @@ int kprobe__vfs_open(struct pt_regs *ctx)
     get_inode_dev(d_inode, &inode, &dev);
 
     /* Report file creation event. */
+    bpf_printk("open: %s\n", (const char *)full_path);
     submit_event((const char *)full_path, inode, dev);
 
     return 0;
@@ -390,6 +391,7 @@ int kprobe__security_inode_setattr(struct pt_regs *ctx) {
     get_inode_dev(d_inode, &inode, &dev);
 
     // Submit event
+    bpf_printk("setattr: %s\n", (const char *)full_path);
     submit_event((const char *)full_path, inode, dev);
 
     return 0;
@@ -456,6 +458,7 @@ int kprobe__vfs_unlink(struct pt_regs *ctx)
     __u64 inode = 0, dev = 0;
     get_inode_dev(d_inode, &inode, &dev);
 
+    bpf_printk("unlink: %s\n", (const char *)full_path);
     submit_event((const char *)full_path, inode, dev);
     return 0;
 }
