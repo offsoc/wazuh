@@ -13,10 +13,13 @@ import jwt
 import wazuh.core.utils as core_utils
 import wazuh.rbac.utils as rbac_utils
 from connexion.exceptions import Unauthorized
+from connexion.lifecycle import ConnexionRequest
 from wazuh.core.authentication import JWT_ALGORITHM, JWT_ISSUER, get_keypair
-from wazuh.core.cluster.dapi.dapi import DistributedAPI
+from wazuh.core.common import rbac_manager
 from wazuh.core.config.client import CentralizedConfig
-from wazuh.rbac.orm import AuthenticationManager, TokenManager, UserRolesManager
+from wazuh.core.exception import WazuhResourceNotFound
+from wazuh.core.rbac import RBACManager
+from wazuh.core.task_dispatcher import TaskDispatcher
 from wazuh.rbac.preprocessor import optimize_resources
 
 from server_management_api.util import raise_if_exc
@@ -26,14 +29,14 @@ EXPIRED_TOKEN = 'Token expired'
 pool = ThreadPoolExecutor(max_workers=1)
 
 
-def check_user_master(user: str, password: str) -> dict:
+async def check_user_master(name: str, password: str) -> dict:
     """Validate a username-password pair.
 
     This function must be executed in the master node.
 
     Parameters
     ----------
-    user : str
+    name : str
         Unique username.
     password : str
         User password.
@@ -43,42 +46,50 @@ def check_user_master(user: str, password: str) -> dict:
     dict
         Dictionary with the result of the query.
     """
-    with AuthenticationManager() as auth_:
-        if auth_.check_user(user, password):
-            return {'result': True}
+    manager: RBACManager = rbac_manager.get()
 
-    return {'result': False}
+    try:
+        user = manager.get_user_by_name(name)
+    except WazuhResourceNotFound:
+        return {'result': False}
+
+    if not user.check_password(password):
+        return {'result': False}
+
+    return {'result': True}
 
 
-def check_user(user: str, password: str, required_scopes=None) -> Union[dict, None]:
+def check_user(name: str, password: str, request: ConnexionRequest = None) -> Union[dict, None]:
     """Validate a username-password pair.
 
     Convenience method to use in OpenAPI specification.
 
     Parameters
     ----------
-    user : str
+    name : str
         Unique username.
     password : str
         User password.
+    request : ConnexionRequest
+        HTTP request.
 
     Returns
     -------
     dict or None
         Dictionary with the username and its status or None.
     """
-    dapi = DistributedAPI(
+    dispatcher = TaskDispatcher(
         f=check_user_master,
-        f_kwargs={'user': user, 'password': password},
-        request_type='local_master',
-        is_async=False,
+        f_kwargs={'name': name, 'password': password},
+        is_async=True,
         wait_for_complete=False,
         logger=logging.getLogger('wazuh-api'),
+        rbac_manager=request.state.rbac_manager if request else None,
     )
-    data = raise_if_exc(pool.submit(asyncio.run, dapi.distribute_function()).result())
+    data = raise_if_exc(pool.submit(asyncio.run, dispatcher.execute_function()).result())
 
     if data['result']:
-        return {'sub': user, 'active': True}
+        return {'sub': name, 'active': True}
 
 
 def get_security_conf() -> dict:
@@ -113,14 +124,13 @@ def generate_token(user_id: str = None, data: dict = None, auth_context: dict = 
     str
         Encoded JWT token.
     """
-    dapi = DistributedAPI(
+    dispatcher = TaskDispatcher(
         f=get_security_conf,
-        request_type='local_master',
         is_async=False,
         wait_for_complete=False,
         logger=logging.getLogger('wazuh-api'),
     )
-    result = raise_if_exc(pool.submit(asyncio.run, dapi.distribute_function()).result()).dikt
+    result = raise_if_exc(pool.submit(asyncio.run, dispatcher.execute_function()).result()).dikt
     timestamp = int(core_utils.get_utc_now().timestamp())
 
     payload = {
@@ -143,7 +153,7 @@ def generate_token(user_id: str = None, data: dict = None, auth_context: dict = 
 
 
 @rbac_utils.token_cache(rbac_utils.tokens_cache)
-def check_token(username: str, roles: tuple, token_nbf_time: int, run_as: bool) -> dict:
+async def check_token(username: str, roles: tuple, token_nbf_time: int, run_as: bool) -> dict:
     """Check the validity of a token with the current time and the generation time of the token.
 
     Parameters
@@ -162,30 +172,18 @@ def check_token(username: str, roles: tuple, token_nbf_time: int, run_as: bool) 
     dict
         Dictionary with the result.
     """
-    # Check that the user exists
-    with AuthenticationManager() as am:
-        user = am.get_user(username=username)
-        if not user:
-            return {'valid': False}
-        user_id = user['id']
+    manager: RBACManager = rbac_manager.get()
 
-        with UserRolesManager() as urm:
-            user_roles = [role.id for role in urm.get_all_roles_from_user(user_id=user_id)]
-            if not am.user_allow_run_as(user['username']) and set(user_roles) != set(roles):
-                return {'valid': False}
-            with TokenManager() as tm:
-                for role in user_roles:
-                    if not tm.is_token_valid(
-                        role_id=role, user_id=user_id, token_nbf_time=int(token_nbf_time), run_as=run_as
-                    ):
-                        return {'valid': False}
+    user = manager.get_user_by_name(username)
+    if not user.allow_run_as and set(user.roles) != set(roles):
+        return {'valid': False}
 
-    policies = optimize_resources(roles)
+    policies = optimize_resources(user.roles)
 
     return {'valid': True, 'policies': policies}
 
 
-def decode_token(token: str) -> dict:
+def decode_token(token: str, request: ConnexionRequest = None) -> dict:
     """Decode a JWT formatted token and add processed policies.
     Raise an Unauthorized exception in case validation fails.
 
@@ -193,6 +191,8 @@ def decode_token(token: str) -> dict:
     ----------
     token : str
         JWT formatted token.
+    request : ConnexionRequest
+        HTTP request.
 
     Raises
     ------
@@ -209,23 +209,21 @@ def decode_token(token: str) -> dict:
         _, public_key = get_keypair()
         payload = jwt.decode(token, public_key, algorithms=[JWT_ALGORITHM], audience='Wazuh API REST')
 
-        # Check token and add processed policies in the Master node
-        server_config = CentralizedConfig.get_server_config()
-        dapi = DistributedAPI(
+        # Check token and add processed policies
+        dispatcher = TaskDispatcher(
             f=check_token,
             f_kwargs={
                 'username': payload['sub'],
                 'roles': tuple(payload['rbac_roles']),
                 'token_nbf_time': payload['nbf'],
                 'run_as': payload['run_as'],
-                'origin_node_type': server_config.node.type,
             },
-            request_type='local_master',
-            is_async=False,
+            is_async=True,
             wait_for_complete=False,
             logger=logging.getLogger('wazuh-api'),
+            rbac_manager=request.state.rbac_manager if request else None,
         )
-        data = raise_if_exc(pool.submit(asyncio.run, dapi.distribute_function()).result()).to_dict()
+        data = raise_if_exc(pool.submit(asyncio.run, dispatcher.execute_function()).result()).to_dict()
 
         if not data['result']['valid']:
             raise Unauthorized(INVALID_TOKEN)
@@ -233,14 +231,13 @@ def decode_token(token: str) -> dict:
         payload['rbac_policies']['rbac_mode'] = payload.pop('rbac_mode')
 
         # Detect local changes
-        dapi = DistributedAPI(
+        dispatcher = TaskDispatcher(
             f=get_security_conf,
-            request_type='local_master',
             is_async=False,
             wait_for_complete=False,
             logger=logging.getLogger('wazuh-api'),
         )
-        result = raise_if_exc(pool.submit(asyncio.run, dapi.distribute_function()).result())
+        result = raise_if_exc(pool.submit(asyncio.run, dispatcher.execute_function()).result())
 
         current_rbac_mode = result['rbac_mode']
         current_expiration_time = result['auth_token_exp_timeout']

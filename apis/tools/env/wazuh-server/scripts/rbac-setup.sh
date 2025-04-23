@@ -27,7 +27,7 @@ curl -X POST -H "$CONTENT_TYPE" -ksu $INDEXER_USERNAME:$INDEXER_PASSWORD -w "\n"
                 "policies": [
                     {
                         "name": "agents_all",
-                        "actions": ["agent:read", "agent:delete", "agent:modify_group", "agent:reconnect", "agent:restart"],
+                        "actions": ["agent:create", "agent:read", "agent:delete", "agent:modify_group", "agent:reconnect", "agent:restart"],
                         "resources": ["*:*:*"],
                         "effect": "allow",
                         "level": 0
@@ -35,13 +35,6 @@ curl -X POST -H "$CONTENT_TYPE" -ksu $INDEXER_USERNAME:$INDEXER_PASSWORD -w "\n"
                     {
                         "name": "groups_all",
                         "actions": ["group:read", "group:delete", "group:update_config", "group:modify_assignments"],
-                        "resources": ["*:*:*"],
-                        "effect": "allow",
-                        "level": 0
-                    },
-                    {
-                        "name": "security_all",
-                        "actions": ["security:create", "security:create_user", "security:read_config", "security:update_config", "security:revoke", "security:edit_run_as", "security:read", "security:update", "security:delete"],
                         "resources": ["*:*:*"],
                         "effect": "allow",
                         "level": 0

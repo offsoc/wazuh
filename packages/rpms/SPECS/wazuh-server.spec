@@ -20,7 +20,17 @@ Requires(postun): /usr/sbin/groupdel /usr/sbin/userdel
 AutoReqProv: no
 
 Requires: coreutils
+
+%ifarch  x86_64
 BuildRequires: coreutils glibc-devel automake autoconf libtool policycoreutils-python curl perl
+%define _toolset devtoolset-11
+%endif
+
+%ifarch  aarch64
+BuildRequires: coreutils glibc-devel automake autoconf libtool policycoreutils-python-utils curl perl
+%define _toolset gcc-toolset-11
+%endif
+
 
 ExclusiveOS: linux
 
@@ -71,7 +81,8 @@ echo 'USER_CREATE_SSL_CERT="n"' >> ./etc/preloaded-vars.conf
 echo 'DOWNLOAD_CONTENT="y"' >> ./etc/preloaded-vars.conf
 export VCPKG_ROOT="/root/vcpkg"
 export PATH="${PATH}:${VCPKG_ROOT}"
-scl enable devtoolset-11 ./install.sh || { echo "install.sh failed! Aborting." >&2; exit 1; }
+
+scl enable %{_toolset} ./install.sh || { echo "install.sh failed! Aborting." >&2; exit 1; }
 
 sed -i '/"stage":/s/$/,/; /"stage":/a \    "commit": "'"%{_hashcommit}"'"' %{_localstatedir}usr/share/wazuh-server/VERSION.json
 cat %{_localstatedir}usr/share/wazuh-server/VERSION.json
@@ -94,6 +105,7 @@ cp -p %{_localstatedir}usr/share/wazuh-server/bin/wazuh-server ${RPM_BUILD_ROOT}
 cp -p %{_localstatedir}usr/share/wazuh-server/bin/wazuh-keystore ${RPM_BUILD_ROOT}%{_localstatedir}usr/share/wazuh-server/bin/
 
 cp -pr %{_localstatedir}var/lib/wazuh-server ${RPM_BUILD_ROOT}%{_localstatedir}var/lib/
+cp -pr %{_localstatedir}var/log/wazuh-server ${RPM_BUILD_ROOT}%{_localstatedir}var/log/
 cp -pr %{_localstatedir}usr/share/wazuh-server ${RPM_BUILD_ROOT}%{_localstatedir}usr/share/
 cp -pr %{_localstatedir}etc/wazuh-server ${RPM_BUILD_ROOT}%{_localstatedir}etc/
 
@@ -176,6 +188,7 @@ if [ $1 = 0 ];then
   # Remove lingering folders and files
   rm -rf %{_localstatedir}run/wazuh-server
   rm -rf %{_localstatedir}var/lib/wazuh-server
+  rm -rf %{_localstatedir}var/log/wazuh-server
   rm -rf %{_localstatedir}usr/share/wazuh-server
   rm -rf %{_localstatedir}etc/wazuh-server
 fi
@@ -241,7 +254,6 @@ rm -fr %{buildroot}
 %dir %attr(750, %{_wazuh_user}, %{_wazuh_group}) %{_localstatedir}etc/wazuh-server
 %attr(640, %{_wazuh_user}, %{_wazuh_group}) %{_localstatedir}etc/wazuh-server/wazuh-server.yml
 %dir %attr(500, %{_wazuh_user}, %{_wazuh_group}) %{_localstatedir}etc/wazuh-server/certs
-%dir %attr(750, %{_wazuh_user}, %{_wazuh_group}) %{_localstatedir}etc/wazuh-server/cluster
 %dir %attr(750, %{_wazuh_user}, %{_wazuh_group}) %{_localstatedir}etc/wazuh-server/groups
 %dir %attr(750, %{_wazuh_user}, %{_wazuh_group}) %{_localstatedir}usr/share/wazuh-server/lib
 %dir %attr(750, %{_wazuh_user}, %{_wazuh_group}) %{_localstatedir}usr/share/wazuh-server/framework
@@ -263,7 +275,6 @@ rm -fr %{buildroot}
 %attr(750, %{_wazuh_user}, %{_wazuh_group}) %{_localstatedir}usr/share/wazuh-server/bin/wazuh-server
 %attr(750, %{_wazuh_user}, %{_wazuh_group}) %{_localstatedir}usr/share/wazuh-server/bin/wazuh-keystore
 # This will be correctly added in #26936
-%attr(750, %{_wazuh_user}, %{_wazuh_group}) %{_localstatedir}usr/share/wazuh-server/bin/rbac_control
 %attr(640, %{_wazuh_user}, %{_wazuh_group}) %{_localstatedir}var/lib/wazuh-server/tmp/vd_1.0.0_vd_4.10.0.tar.xz
 
 %config(missingok) %{_initrddir}/wazuh-server

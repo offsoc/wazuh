@@ -5,17 +5,16 @@
 import asyncio
 import json
 import logging
-import sys
 from collections import defaultdict
 from functools import partial
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import call, patch
 
 import pytest
 import wazuh.core.exception as exception
 from freezegun import freeze_time
 from wazuh.core.cluster.tests.conftest import get_default_configuration
 from wazuh.core.config.client import CentralizedConfig
-from wazuh.core.config.models.server import ValidateFilePathMixin
+from wazuh.core.config.models.base import ValidateFilePathMixin
 
 with patch('wazuh.core.common.wazuh_uid'):
     with patch('wazuh.core.common.wazuh_gid'):
@@ -23,10 +22,7 @@ with patch('wazuh.core.common.wazuh_uid'):
             default_config = get_default_configuration()
             CentralizedConfig._config = default_config
 
-            sys.modules['wazuh.rbac.orm'] = MagicMock()
             import wazuh.rbac.decorators
-
-            del sys.modules['wazuh.rbac.orm']
             from wazuh.tests.util import RBAC_bypasser
 
             wazuh.rbac.decorators.expose_resources = RBAC_bypasser

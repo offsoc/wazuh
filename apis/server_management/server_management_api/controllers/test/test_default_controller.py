@@ -2,7 +2,6 @@
 # Created by Wazuh, Inc. <info@wazuh.com>.
 # This program is a free software; you can redistribute it and/or modify it under the terms of GPLv2
 
-import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -10,7 +9,6 @@ from connexion.lifecycle import ConnexionResponse
 
 with patch('wazuh.common.wazuh_uid'):
     with patch('wazuh.common.wazuh_gid'):
-        sys.modules['wazuh.rbac.orm'] = MagicMock()
         import wazuh.rbac.decorators
         from wazuh.core.utils import get_utc_now
         from wazuh.tests.util import RBAC_bypasser
@@ -18,11 +16,10 @@ with patch('wazuh.common.wazuh_uid'):
         from server_management_api.controllers.default_controller import DATE_FORMAT, BasicInfo, default_info, socket
 
         wazuh.rbac.decorators.expose_resources = RBAC_bypasser
-        del sys.modules['wazuh.rbac.orm']
 
 
 @pytest.mark.asyncio
-@patch('server_management_api.controllers.default_controller.load_spec', return_value=MagicMock())
+@patch('server_management_api.controllers.default_controller.load_api_spec', return_value=MagicMock())
 @patch('server_management_api.controllers.default_controller.WazuhResult', return_value={})
 async def test_default_info(mock_wresult, mock_lspec):
     """Verify 'default_info' endpoint is working as expected."""

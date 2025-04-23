@@ -10,7 +10,6 @@ import json
 import logging
 import os
 import ssl
-import sys
 from contextvars import ContextVar
 from datetime import datetime
 from unittest.mock import ANY, AsyncMock, MagicMock, call, mock_open, patch
@@ -21,7 +20,7 @@ from wazuh import Wazuh
 from wazuh.core import exception
 from wazuh.core.cluster.tests.conftest import get_default_configuration
 from wazuh.core.config.client import CentralizedConfig
-from wazuh.core.config.models.server import ValidateFilePathMixin
+from wazuh.core.config.models.base import ValidateFilePathMixin
 
 with patch('wazuh.common.wazuh_uid'):
     with patch('wazuh.common.wazuh_gid'):
@@ -29,10 +28,7 @@ with patch('wazuh.common.wazuh_uid'):
             default_config = get_default_configuration()
             CentralizedConfig._config = default_config
 
-            sys.modules['wazuh.rbac.orm'] = MagicMock()
             import wazuh.rbac.decorators
-
-            del sys.modules['wazuh.rbac.orm']
             from wazuh.tests.util import RBAC_bypasser
 
             wazuh.rbac.decorators.expose_resources = RBAC_bypasser

@@ -3,19 +3,18 @@
 # This program is a free software; you can redistribute it and/or modify it under the terms of GPLv2
 
 import os
-import sys
 import zlib
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from time import time
-from unittest.mock import ANY, MagicMock, call, mock_open, patch
+from unittest.mock import ANY, call, mock_open, patch
 
 import pytest
 from jsonschema import validators
 from wazuh.core import common
 from wazuh.core.cluster.tests.conftest import get_default_configuration
 from wazuh.core.config.client import CentralizedConfig
-from wazuh.core.config.models.server import ValidateFilePathMixin
+from wazuh.core.config.models.base import ValidateFilePathMixin
 
 with patch('wazuh.common.wazuh_uid'):
     with patch('wazuh.common.wazuh_gid'):
@@ -23,11 +22,7 @@ with patch('wazuh.common.wazuh_uid'):
             default_config = get_default_configuration()
             CentralizedConfig._config = default_config
 
-            sys.modules['wazuh.rbac.orm'] = MagicMock()
             import wazuh.rbac.decorators
-
-            del sys.modules['wazuh.rbac.orm']
-
             from wazuh.tests.util import RBAC_bypasser
 
             wazuh.rbac.decorators.expose_resources = RBAC_bypasser

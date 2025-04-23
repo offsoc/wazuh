@@ -164,6 +164,7 @@ def get_context_cache() -> dict:
 
 # ================================================= Context variables ==================================================
 rbac: ContextVar[Dict] = ContextVar('rbac', default={'rbac_mode': 'black'})
+rbac_manager: ContextVar[Any] = ContextVar('rbac_manager', default=None)
 current_user: ContextVar[str] = ContextVar('current_user', default='')
 broadcast: ContextVar[bool] = ContextVar('broadcast', default=False)
 cluster_nodes: ContextVar[list] = ContextVar('cluster_nodes', default=list())
@@ -174,7 +175,6 @@ try:
         default={
             'process_pool': ProcessPoolExecutor(max_workers=1),
             'authentication_pool': ProcessPoolExecutor(max_workers=1),
-            'events_pool': ProcessPoolExecutor(max_workers=1),
         },
     )
 # Handle exception when the user running Wazuh cannot access /dev/shm.
