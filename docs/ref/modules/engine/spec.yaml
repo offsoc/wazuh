@@ -21,6 +21,8 @@ tags:
     description: "Operations for managing key-value databases"
   - name: Tester
     description: "Operations for testing and validating policies"
+  - name: Archiver
+    description: "Operations for managing the archives. By default a file 'archives.json' is created at '/var/lib/wazuh-server/archives.json' where all events received by the Engine are stored."
 
 #################################################################################
 # Paths
@@ -133,7 +135,7 @@ paths:
                   summary: The requested collection does not exist
                   value:
                     status: "ERROR"
-                    error: "Invalid collection type \"non-exist\""
+                    error: 'Invalid collection type "non-exist"'
                 invalid_format:
                   summary: The requested format does not exist
                   value:
@@ -143,12 +145,12 @@ paths:
                   summary: The asset content does not have a name
                   value:
                     status: "ERROR"
-                    error: "Invalid content name 'documentation': Invalid collection type \"documentation\""
+                    error: 'Invalid content name ''documentation'': Invalid collection type "documentation"'
                 name_type_mismatch:
                   summary: The asset name in the content does not match the asset type
                   value:
                     status: "ERROR"
-                    error: "Invalid content name 'non-exist/documentation/0': Invalid type \"non-exist\""
+                    error: 'Invalid content name ''non-exist/documentation/0'': Invalid type "non-exist"'
                 already_exists:
                   summary: The asset already exists currently
                   value:
@@ -198,7 +200,7 @@ paths:
                   summary: The requested collection does not exist
                   value:
                     status: "ERROR"
-                    error: "Invalid collection type \"non-exist\""
+                    error: 'Invalid collection type "non-exist"'
                 invalid_format:
                   summary: The requested format does not exist
                   value:
@@ -208,7 +210,7 @@ paths:
                   summary: The requested asset name has an invalid format
                   value:
                     status: "ERROR"
-                    error: "Invalid name \"decoder/core-wazuh-message/0/other\" received, a name with 1, 2 or 3 parts was expected"
+                    error: 'Invalid name "decoder/core-wazuh-message/0/other" received, a name with 1, 2 or 3 parts was expected'
         "500":
           $ref: "#/components/responses/InternalServerError_500"
 
@@ -300,7 +302,7 @@ paths:
                   summary: Invalid format of the asset name
                   value:
                     status: "ERROR"
-                    error: "Invalid name \"decoder/documentation/0/0\" received, a name with 1, 2 or 3 parts was expected"
+                    error: 'Invalid name "decoder/documentation/0/0" received, a name with 1, 2 or 3 parts was expected'
         "500":
           $ref: "#/components/responses/InternalServerError_500"
 
@@ -336,7 +338,7 @@ paths:
                   summary: Invalid helper function
                   value:
                     status: "ERROR"
-                    error: "In stage 'normalize' builder for block 'map' failed with error: Failed to build operation '@timestamp: map(\"non-exist()\")': Field '@timestamp' value validation failed: Invalid date"
+                    error: 'In stage ''normalize'' builder for block ''map'' failed with error: Failed to build operation ''@timestamp: map("non-exist()")'': Field ''@timestamp'' value validation failed: Invalid date'
                 invalid_map_structure:
                   summary: Invalid map structure
                   value:
@@ -390,6 +392,7 @@ paths:
           application/json:
             schema:
               type: object
+              required: [policy]
               properties:
                 policy:
                   $ref: "#/components/schemas/PolicyName"
@@ -433,6 +436,7 @@ paths:
           application/json:
             schema:
               type: object
+              required: [policy]
               properties:
                 policy:
                   $ref: "#/components/schemas/PolicyName"
@@ -476,6 +480,7 @@ paths:
           application/json:
             schema:
               type: object
+              required: [policy]
               properties:
                 policy:
                   $ref: "#/components/schemas/PolicyName"
@@ -527,6 +532,7 @@ paths:
           application/json:
             schema:
               type: object
+              required: [policy, asset, namespace]
               properties:
                 policy:
                   $ref: "#/components/schemas/PolicyName"
@@ -591,6 +597,7 @@ paths:
           application/json:
             schema:
               type: object
+              required: [policy, asset, namespace]
               properties:
                 policy:
                   $ref: "#/components/schemas/PolicyName"
@@ -660,6 +667,7 @@ paths:
           application/json:
             schema:
               type: object
+              required: [policy, namespace]
               properties:
                 policy:
                   $ref: "#/components/schemas/PolicyName"
@@ -719,6 +727,7 @@ paths:
           application/json:
             schema:
               type: object
+              required: [policy]
               properties:
                 policy:
                   $ref: "#/components/schemas/PolicyName"
@@ -936,6 +945,7 @@ paths:
           application/json:
             schema:
               type: object
+              required: [policy]
               properties:
                 policy:
                   $ref: "#/components/schemas/PolicyName"
@@ -2238,6 +2248,98 @@ paths:
                     error: "Cannot download database from 'https://raw.githubusercontent.com/wazuh/wazuh/blob/main/src/engine/test/integration_tests/geo/data/base.mmdb': Failed to download file from 'https://raw.githubusercontent.com/wazuh/wazuh/blob/main/src/engine/test/integration_tests/geo/data/base.mmdb', error: HTTP response code said error, status code: 404."
         "500":
           $ref: "#/components/responses/InternalServerError_500"
+  #################################
+  # Archiver
+  #################################
+  /archiver/activate:
+    post:
+      tags:
+        - Archiver
+      summary: Activate the archiver
+      description: |
+        This endpoint activates the archiver in the system.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmptyRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/GenericSuccess_200"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/responses/BadRequest_400"
+        "500":
+          $ref: "#/components/responses/InternalServerError_500"
+  /archiver/deactivate:
+    post:
+      tags:
+        - Archiver
+      summary: Deactivate the archiver
+      description: |
+        This endpoint deactivates the archiver in the system.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmptyRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/GenericSuccess_200"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/responses/BadRequest_400"
+        "500":
+          $ref: "#/components/responses/InternalServerError_500"
+  /archiver/status:
+    post:
+      tags:
+        - Archiver
+      summary: Get the status of the archiver
+      description: |
+        This endpoint retrieves the current status of the archiver.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmptyRequest"
+      responses:
+        "200":
+          description: Successfully retrieved archiver status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArchiverStatus_Response"
+              examples:
+                archiver_active:
+                  summary: Archiver is active
+                  value:
+                    status: "OK"
+                    error: null
+                    active: true
+                archiver_inactive:
+                  summary: Archiver is inactive
+                  value:
+                    status: "OK"
+                    error: null
+                    active: false
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/responses/BadRequest_400"
+        "500":
+          $ref: "#/components/responses/InternalServerError_500"
 
 #################################################################################
 # Components
@@ -2312,6 +2414,7 @@ components:
 
     ResourcePost_Request:
       type: object
+      required: [type, format, content, namespaceid]
       properties:
         type:
           $ref: "#/components/schemas/ResourceType"
@@ -2325,6 +2428,7 @@ components:
 
     ResourceGet_Request:
       type: object
+      required: [name, format, namespaceid]
       properties:
         name:
           $ref: "#/components/schemas/ResourceName"
@@ -2345,6 +2449,7 @@ components:
 
     ResourcePut_Request:
       type: object
+      required: [name, format, content, namespaceid]
       properties:
         name:
           $ref: "#/components/schemas/ResourceName"
@@ -2358,6 +2463,7 @@ components:
 
     ResourceDelete_Request:
       type: object
+      required: [name, namespaceid]
       properties:
         name:
           $ref: "#/components/schemas/ResourceName"
@@ -2366,6 +2472,7 @@ components:
 
     ResourceValidate_Request:
       type: object
+      required: [name, format, content, namespaceid]
       properties:
         name:
           $ref: "#/components/schemas/ResourceName"
@@ -2453,6 +2560,7 @@ components:
 
     PolicyDefaultParentGet_Request:
       type: object
+      required: [policy, namespace]
       properties:
         policy:
           $ref: "#/components/schemas/PolicyName"
@@ -2472,6 +2580,7 @@ components:
 
     PolicyDefaultParentPost_Request:
       type: object
+      required: [policy, namespace, default_parent]
       properties:
         policy:
           $ref: "#/components/schemas/PolicyName"
@@ -2482,6 +2591,7 @@ components:
 
     PolicyDefaultParentDelete_Request:
       type: object
+      required: [policy, namespace, default_parent]
       properties:
         policy:
           $ref: "#/components/schemas/PolicyName"
@@ -2552,6 +2662,7 @@ components:
 
     RoutePost_Request:
       type: object
+      required: [name, policy, filter, priority]
       properties:
         name:
           type: string
@@ -2569,6 +2680,7 @@ components:
 
     RouteDelete_Request:
       type: object
+      required: [name]
       properties:
         name:
           type: string
@@ -2576,6 +2688,7 @@ components:
 
     RouteGet_Request:
       type: object
+      required: [name]
       properties:
         name:
           type: string
@@ -2592,6 +2705,7 @@ components:
 
     RouteReload_Request:
       type: object
+      required: [name]
       properties:
         name:
           type: string
@@ -2599,6 +2713,7 @@ components:
 
     RoutePatchPriority_Request:
       type: object
+      required: [name, priority]
       properties:
         name:
           type: string
@@ -2627,6 +2742,7 @@ components:
 
     EpsUpdate_Request:
       type: object
+      required: [eps, refresh_interval]
       properties:
         eps:
           type: integer
@@ -2693,6 +2809,7 @@ components:
 
     KVDBGet_Request:
       type: object
+      required: [name, key]
       properties:
         name:
           $ref: "#/components/schemas/KVDBName"
@@ -2709,6 +2826,7 @@ components:
 
     KVDBSearch_Request:
       type: object
+      required: [name, prefix]
       properties:
         name:
           $ref: "#/components/schemas/KVDBName"
@@ -2738,6 +2856,7 @@ components:
 
     KVDBDelete_Request:
       type: object
+      required: [name, key]
       properties:
         name:
           $ref: "#/components/schemas/KVDBName"
@@ -2746,6 +2865,7 @@ components:
 
     KVDBPut_Request:
       type: object
+      required: [name, entry]
       properties:
         name:
           $ref: "#/components/schemas/KVDBName"
@@ -2775,6 +2895,7 @@ components:
 
     KVDBManagerPost_Request:
       type: object
+      required: [name]
       properties:
         name:
           $ref: "#/components/schemas/KVDBName"
@@ -2785,12 +2906,14 @@ components:
 
     KVDBManagerDelete_Request:
       type: object
+      required: [name]
       properties:
         name:
           $ref: "#/components/schemas/KVDBName"
 
     KVDBManagerDump_Request:
       type: object
+      required: [name]
       properties:
         name:
           $ref: "#/components/schemas/KVDBName"
@@ -2831,6 +2954,7 @@ components:
 
     TesterSessionPost:
       type: object
+      required: [name, policy]
       properties:
         name:
           $ref: "#/components/schemas/TesterSessionName"
@@ -2884,6 +3008,7 @@ components:
 
     TesterRunPost_Request:
       type: object
+      required: [name, ndjson_event]
       properties:
         name:
           $ref: "#/components/schemas/TesterSessionName"
@@ -2929,12 +3054,14 @@ components:
 
     TesterSessionReload_Request:
       type: object
+      required: [name]
       properties:
         name:
           $ref: "#/components/schemas/TesterSessionName"
 
     TesterSessionGet_Request:
       type: object
+      required: [name]
       properties:
         name:
           $ref: "#/components/schemas/TesterSessionName"
@@ -2950,6 +3077,7 @@ components:
 
     TesterSessionDelete_Request:
       type: object
+      required: [name]
       properties:
         name:
           $ref: "#/components/schemas/TesterSessionName"
@@ -2978,6 +3106,7 @@ components:
 
     GeoDbPost_Request:
       type: object
+      required: [path, type]
       properties:
         path:
           type: string
@@ -2988,6 +3117,7 @@ components:
 
     GeoDbDelete_Request:
       type: object
+      required: [path]
       properties:
         path:
           type: string
@@ -3006,6 +3136,7 @@ components:
 
     GeoDbRemoteUpsert_Request:
       type: object
+      required: [path, type, dbUrl, hashUrl]
       properties:
         path:
           type: string

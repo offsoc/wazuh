@@ -13,9 +13,8 @@ target_include_directories(api_event
 target_link_libraries(api_event
     PUBLIC
     api::adapter
-
-    PRIVATE
     router::irouter
+    archiver::iface
 )
 add_library(api::event ALIAS api_event)
 
@@ -37,6 +36,7 @@ if(ENGINE_BUILD_TEST)
         router::mocks
         GTest::gtest_main
         api::adapter::test
+        archiver::mocks
     )
     gtest_discover_tests(api_event_utest)
 endif()
