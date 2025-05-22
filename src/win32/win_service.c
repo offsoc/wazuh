@@ -252,9 +252,12 @@ int UninstallService()
 /* "Signal" handler */
 VOID WINAPI OssecServiceCtrlHandler(DWORD dwOpcode)
 {
+    plain_minfo("1.");
     if (ossecServiceStatusHandle) {
+        plain_minfo("2.");
         switch (dwOpcode) {
             case SERVICE_CONTROL_STOP:
+                plain_minfo("3.");
                 ossecServiceStatus.dwWin32ExitCode          = 0;
                 ossecServiceStatus.dwCheckPoint             = 0;
                 ossecServiceStatus.dwWaitHint               = 0;
@@ -323,6 +326,7 @@ void WINAPI OssecServiceStart (__attribute__((unused)) DWORD argc, __attribute__
         return;
     }
 
+    plain_minfo("PRE - SERVICE_RUNNING.");
     ossecServiceStatus.dwCurrentState = SERVICE_RUNNING;
     ossecServiceStatus.dwCheckPoint = 0;
     ossecServiceStatus.dwWaitHint = 0;
@@ -331,9 +335,11 @@ void WINAPI OssecServiceStart (__attribute__((unused)) DWORD argc, __attribute__
         plain_minfo("SetServiceStatus error.");
         return;
     }
+    plain_minfo("POST - SERVICE_RUNNING.");
 
 #ifdef OSSECHIDS
     /* Start process */
+    plain_minfo("local_start.");
     local_start();
 #endif
 }
