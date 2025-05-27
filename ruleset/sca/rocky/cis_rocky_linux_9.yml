@@ -3105,7 +3105,7 @@ checks:
     condition: any
     rules:
       - 'c:sshd -T -C user=root -> r:^\s*usepam\s+yes'
-      - 'not f:/etc/ssh/sshd_config -> r:^\sUsePAM\s+no'
+      - 'not f:/etc/ssh/sshd_config -> !r:^# && r:UsePAM\s+no'
 
   # 5.2.7 Ensure SSH root login is disabled. (Automated)
   - id: 31624
@@ -3128,7 +3128,7 @@ checks:
     condition: any
     rules:
       - 'c:sshd -T -C user=root -> r:^\s*PermitRootLogin\s*no'
-      - 'not f:/etc/ssh/sshd_config -> r:^\sPermitRootLogin\s+yes'
+      - 'not f:/etc/ssh/sshd_config -> !r:^# && r:PermitRootLogin\s+yes'
 
   # 5.2.8 Ensure SSH HostbasedAuthentication is disabled. (Automated)
   - id: 31625
@@ -3151,7 +3151,7 @@ checks:
     condition: any
     rules:
       - 'c:sshd -T -C user=root -> r:^\s*HostbasedAuthentication\s*\t*no'
-      - 'not f:/etc/ssh/sshd_config -> r:^\sHostbasedAuthentication\s+yes'
+      - 'not f:/etc/ssh/sshd_config -> !r:^# && r:HostbasedAuthentication\s+yes'
 
   # 5.2.9 Ensure SSH PermitEmptyPasswords is disabled. (Automated)
   - id: 31626
@@ -3174,7 +3174,7 @@ checks:
     condition: any
     rules:
       - 'c:sshd -T -C user=root -> r:^\s*PermitEmptyPasswords\s*no'
-      - 'not f:/etc/ssh/sshd_config -> r:^\sPermitEmptyPasswords\s+yes'
+      - 'not f:/etc/ssh/sshd_config -> !r:^# && r:PermitEmptyPasswords\s+yes'
 
   # 5.2.10 Ensure SSH PermitUserEnvironment is disabled. (Automated)
   - id: 31627
@@ -3198,7 +3198,7 @@ checks:
     condition: any
     rules:
       - 'c:sshd -T -C user=root -> r:^\s*PermitUserEnvironment\s*no'
-      - 'not f:/etc/ssh/sshd_config -> r:^\sPermitUserEnvironment\s+yes'
+      - 'not f:/etc/ssh/sshd_config -> !r:^# && r:PermitUserEnvironment\s+yes'
 
   # 5.2.11 Ensure SSH IgnoreRhosts is enabled. (Automated)
   - id: 31628
@@ -3215,7 +3215,7 @@ checks:
     condition: any
     rules:
       - 'c:sshd -T -C user=root -> r:\s*ignorerhosts\s*yes'
-      - 'not f:/etc/ssh/sshd_config -> r:^\s*ignorerhosts\s+no'
+      - 'not f:/etc/ssh/sshd_config -> !r:^# && r:ignorerhosts\s+no'
 
   # 5.2.12 Ensure SSH X11 forwarding is disabled. (Automated)
   - id: 31629
@@ -3239,7 +3239,7 @@ checks:
     condition: any
     rules:
       - 'c:sshd -T -C user=root -> r:^\s*X11Forwarding\s*no'
-      - 'not f:/etc/ssh/sshd_config -> r:^\s*x11forwarding\s+yes'
+      - 'not f:/etc/ssh/sshd_config -> !r:^# && r:x11forwarding\s+yes'
 
   # 5.2.13 Ensure SSH AllowTcpForwarding is disabled. (Automated)
   - id: 31630
@@ -3266,7 +3266,7 @@ checks:
     condition: any
     rules:
       - 'c:sshd -T -C user=root -> r:^\s*AllowTcpForwarding\s+no'
-      - 'not f:/etc/ssh/sshd_config -> r:^\s*AllowTcpForwarding\s+yes'
+      - 'not f:/etc/ssh/sshd_config -> !r:^# && r:AllowTcpForwarding\s+yes'
 
   # 5.2.14 Ensure system-wide crypto policy is not over-ridden. (Automated)
   - id: 31631
