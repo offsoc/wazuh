@@ -432,7 +432,7 @@ HANDLE wCreateFile(LPCSTR  lpFileName,
 DIR * wopendir(const char *name);
 
 /**
- * @brief Wrapper over stat() that blocks network paths.
+ * @brief Wrapper over wstat() that blocks network paths.
  *
  * @param pathname Path to inspect.
  * @param statbuf  Output structure to fill.

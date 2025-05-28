@@ -34,18 +34,18 @@ namespace Utils
     static bool existsDir(const std::string& path)
     {
         struct stat info {};
-        return !stat(path.c_str(), &info) && (info.st_mode & S_IFDIR);
+        return !wstat(path.c_str(), &info) && (info.st_mode & S_IFDIR);
     }
     static bool existsRegular(const std::string& path)
     {
         struct stat info {};
-        return !stat(path.c_str(), &info) && (info.st_mode & S_IFREG);
+        return !wstat(path.c_str(), &info) && (info.st_mode & S_IFREG);
     }
 #ifndef WIN32
     static bool existsSocket(const std::string& path)
     {
         struct stat info {};
-        return !stat(path.c_str(), &info) && ((info.st_mode & S_IFMT) == S_IFSOCK);
+        return !wstat(path.c_str(), &info) && ((info.st_mode & S_IFMT) == S_IFSOCK);
     }
 #endif
     struct DirSmartDeleter
