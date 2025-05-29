@@ -41,7 +41,7 @@ references:
     - https://documentation.wazuh.com/current/user-manual/ruleset/ruleset-xml-syntax/rules.html#if-sid
 '''
 import pytest
-
+import subprocess
 from pathlib import Path
 
 from wazuh_testing.constants.paths.logs import WAZUH_LOG_PATH
@@ -125,14 +125,30 @@ def test_valid_signature_id(test_configuration, test_metadata, set_wazuh_configu
     # Start monitors
     log_monitor = file_monitor.FileMonitor(WAZUH_LOG_PATH)
 
-    # Check that no log appears for rules if_sid field pointing to a non existent SID
-    log_monitor.start(callback=callbacks.generate_callback(patterns.SID_NOT_FOUND))
-    assert not log_monitor.callback_result
+    try:
+        # Check that no log appears for rules if_sid field pointing to a non existent SID
+        log_monitor.start(callback=callbacks.generate_callback(patterns.SID_NOT_FOUND))
+        assert not log_monitor.callback_result
 
-    # Check that no log appears for rules if_sid field being empty string
-    log_monitor.start(callback=callbacks.generate_callback(patterns.EMPTY_IF_SID_RULE_IGNORED))
-    assert not log_monitor.callback_result
+        # Check that no log appears for rules if_sid field being empty string
+        log_monitor.start(callback=callbacks.generate_callback(patterns.EMPTY_IF_SID_RULE_IGNORED))
+        assert not log_monitor.callback_result
 
-    # Check that no log appears for rules if_sid field being invalid
-    log_monitor.start(callback=callbacks.generate_callback(patterns.INVALID_IF_SID_RULE_IGNORED))
-    assert not log_monitor.callback_result
+        # Check that no log appears for rules if_sid field being invalid
+        log_monitor.start(callback=callbacks.generate_callback(patterns.INVALID_IF_SID_RULE_IGNORED))
+        assert not log_monitor.callback_result
+    finally:
+        print("\n>>>> CONTENTS OF WAZUH_LOG_PATH ON FAILURE:")
+        print(Path(WAZUH_LOG_PATH).read_text())
+        print("\n>>>> CONTENIDO DE /var/ossec/etc/ossec.conf:")
+        print(Path("/var/ossec/etc/ossec.conf").read_text())
+        print("\n>>>> LISTADO DE /var/ossec/etc/lists:")
+        try:
+            output = subprocess.check_output(
+                ['ls', '-l', '/var/ossec/etc/lists'],
+                stderr=subprocess.STDOUT
+            ).decode('utf-8', errors='ignore')
+        except subprocess.CalledProcessError as e:
+            output = f"Error al listar /var/ossec/etc/lists: {e.output.decode(errors='ignore')}"
+        print(output)
+        assert False
