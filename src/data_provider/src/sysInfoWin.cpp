@@ -378,7 +378,7 @@ static void getPackagesFromReg(const HKEY key, const std::string& subKey, std::f
 
                 if (packageReg.string("DisplayName", value))
                 {
-                    name = value;
+                    name = Utils::EncodingWindowsHelper::stringAnsiToStringUTF8(value);
                 }
 
                 if (packageReg.string("DisplayVersion", value))

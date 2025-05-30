@@ -47,7 +47,7 @@ class AppxWindowsWrapper final : public IPackageWrapper
 
         std::string name() const override
         {
-            return m_name;
+            return Utils::EncodingWindowsHelper::stringAnsiToStringUTF8(m_name);
         }
 
         std::string version() const override
