@@ -57,7 +57,7 @@ openapi-spec-validator==0.7.1
 packaging==20.9
 pathable==0.4.3
 pathlib==1.0.1
-protobuf==3.19.6
+protobuf==4.25.8
 proto-plus==1.19.0
 pyarrow==14.0.1
 psutil==5.9.0
